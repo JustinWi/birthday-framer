@@ -527,11 +527,12 @@
     const set=EMOJI[key]; if(!set||!set.length) return;
     const size=Math.round(Math.min(W,H)*0.078);
     const ix=Math.round(W*0.07)+size/2, iy=Math.round(H*0.07)+size/2; // per-axis, just inside the border
-    const pts=[[ix,iy],[W-ix,iy],[W-ix,H-iy],[ix,H-iy]];
+    // bottom corners only (top corners removed)
+    const pts=[[ix,H-iy,set[3%set.length]],[W-ix,H-iy,set[2%set.length]]];
     c.textAlign='center'; c.textBaseline='middle';
     c.font=size+'px "Segoe UI Emoji","Noto Color Emoji",sans-serif';
     c.save(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=size*0.12; c.shadowOffsetY=2;
-    pts.forEach((p,i)=>{ c.fillText(set[i%set.length],p[0],p[1]); });
+    pts.forEach(p=>{ c.fillText(p[2],p[0],p[1]); });
     c.restore();
   }
 
@@ -557,15 +558,7 @@
     // fixed pixel value) so every side clears equally — a fixed inset becomes a
     // smaller % on the long edge, which crowds the top/bottom. Photo still bleeds full.
     const mx=Math.round(W*0.06), my=Math.round(H*0.06);
-
-    // double border
     const lw=Math.round(W*0.011);
-    c.strokeStyle=accent; c.lineWidth=lw;
-    c.strokeRect(mx,my,W-2*mx,H-2*my);
-    c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
-    const o=Math.round(lw*0.9); c.strokeRect(mx+o,my+o,W-2*(mx+o),H-2*(my+o));
-
-    // text band geometry (two strips: greeting + date on top, names on the bottom)
     const innerX=mx+lw, innerY=my+lw;
     const portrait=H>W;
 
@@ -573,6 +566,13 @@
     const greeting=(state.greeting||'').trim();
     const date=(state.date||'').trim();
     const font=FONTS[state.font];
+
+    // top strip geometry computed first: lets the top border drop to the
+    // title's mid-height so the banner straddles it.
+    const topParts=[greeting,date].filter(Boolean);
+    const tH=Math.round(H*(portrait?0.088:0.105));
+    const topBand={x:innerX, y:innerY, w:W-2*innerX, h:tH};
+    const borderTopY = topParts.length ? Math.round(topBand.y + tH/2) : my;
 
     // draw one centered line of text inside a panel's text rect
     function drawLine(tr, text, capFactor){
@@ -587,11 +587,14 @@
       c.restore();
     }
 
-    // TOP strip: greeting and date on one line, joined by a dot
-    const topParts=[greeting,date].filter(Boolean);
+    // double border — top edge lowered to the title's middle
+    c.strokeStyle=accent; c.lineWidth=lw;
+    c.strokeRect(mx, borderTopY, W-2*mx, (H-my)-borderTopY);
+    c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
+    const o=Math.round(lw*0.9); c.strokeRect(mx+o, borderTopY+o, W-2*(mx+o), (H-my-o)-(borderTopY+o));
+
+    // TOP strip drawn in front of the border so the title straddles it
     if(topParts.length){
-      const tH=Math.round(H*(portrait?0.088:0.105));
-      const topBand={x:innerX, y:innerY, w:W-2*innerX, h:tH};
       const tr=drawTextBg(c,W,H,topBand,state.bg,accent);
       drawLine(tr, topParts.join('   ·   '), 0.5);
     }
