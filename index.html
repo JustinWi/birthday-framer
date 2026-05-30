@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#13110f" />
+<title>The Birthday Framer</title>
+
+<!-- Display fonts. First load needs network; cached afterward. Falls back to system fonts offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Fredoka:wght@500;600;700&family=Luckiest+Guy&family=Pacifico&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#13110f;
+    --panel:#1d1a16;
+    --panel-2:#262119;
+    --ink:#f6efe3;
+    --muted:#b3a892;
+    --line:#3a3228;
+    --accent:#ff7a59;
+    --gold:#e8b04b;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #2a241c 0%, var(--bg) 55%) fixed,
+      var(--bg);
+    color:var(--ink);
+    font-family:"Trebuchet MS","Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100dvh;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:22px 18px 60px}
+  header{margin-bottom:14px}
+  .kicker{
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--gold);font-weight:bold;margin:0 0 6px
+  }
+  h1{
+    font-family:Georgia,"Times New Roman",serif;
+    font-weight:bold;font-size:32px;line-height:1.05;margin:0;letter-spacing:-.01em;
+  }
+  h1 em{font-style:italic;color:var(--accent)}
+  .sub{color:var(--muted);font-size:14px;margin:8px 0 0;line-height:1.5}
+
+  .card{
+    background:linear-gradient(180deg,var(--panel) 0%, var(--panel-2) 100%);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;margin:14px 0;
+  }
+  .card h2{
+    font-family:Georgia,serif;font-size:18px;margin:0 0 14px;
+    display:flex;align-items:center;gap:9px;
+  }
+  .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#1a120e;font-size:14px;font-weight:bold;
+    font-family:"Trebuchet MS",sans-serif;flex:none;
+  }
+
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px;font-weight:bold}
+  .row{margin-bottom:14px}
+  .row:last-child{margin-bottom:0}
+  input[type=text]{
+    width:100%;background:#15120e;border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:12px 13px;font-size:16px;font-family:inherit;
+  }
+  input[type=text]:focus,select:focus{outline:none;border-color:var(--accent)}
+  select{
+    width:100%;background:#15120e;border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:12px 13px;font-size:16px;font-family:inherit;
+    -webkit-appearance:none;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 18px) calc(1.15em),calc(100% - 13px) calc(1.15em);
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  }
+  .two{display:flex;gap:12px}
+  .two>div{flex:1}
+
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .sw{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+  .sw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--bg) inset}
+  input[type=color]{
+    width:42px;height:34px;border:1px solid var(--line);border-radius:8px;
+    background:#15120e;padding:2px;cursor:pointer;
+  }
+
+  .seg{display:flex;background:#15120e;border:1px solid var(--line);border-radius:11px;padding:4px;gap:4px}
+  .seg button{
+    flex:1;border:none;background:transparent;color:var(--muted);
+    padding:9px 8px;border-radius:8px;font-size:14px;font-weight:bold;font-family:inherit;cursor:pointer;
+  }
+  .seg button.on{background:var(--accent);color:#1a120e}
+
+  /* theme chips */
+  .themes{display:flex;gap:8px;flex-wrap:wrap}
+  .theme{
+    border:1px solid var(--line);background:#15120e;color:var(--ink);
+    border-radius:999px;padding:9px 13px;font-size:14px;font-weight:bold;
+    font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;
+  }
+  .theme.on{border-color:var(--accent);background:#241a14;box-shadow:0 0 0 1px var(--accent) inset}
+
+  .btn{
+    -webkit-appearance:none;appearance:none;border:none;cursor:pointer;
+    font-family:inherit;font-weight:bold;font-size:16px;
+    border-radius:12px;padding:15px 18px;width:100%;
+    background:var(--accent);color:#1a120e;
+    transition:transform .06s ease, filter .15s ease;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+  }
+  .btn:active{transform:scale(.985)}
+  .btn.ghost{background:#15120e;color:var(--ink);border:1px solid var(--line)}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .btn.lg{font-size:17px;padding:17px}
+
+  .hint{font-size:12.5px;color:var(--muted);margin:10px 2px 0;line-height:1.5}
+  details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  summary{cursor:pointer;font-size:13px;color:var(--gold);font-weight:bold;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"⚙︎ ";}
+
+  /* preview */
+  .preview-wrap{display:flex;justify-content:center;background:#0f0d0b;border:1px solid var(--line);border-radius:12px;padding:12px;overflow:hidden}
+  #preview{display:block;max-width:100%;max-height:62vh;height:auto;border-radius:4px;box-shadow:0 8px 26px rgba(0,0,0,.45)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+  @media(max-width:430px){.grid{grid-template-columns:1fr}}
+  .tile{background:#0f0d0b;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .tile img{display:block;width:100%;height:auto}
+  .tile .bar{display:flex;gap:8px;padding:9px}
+  .tile .bar .btn{padding:10px;font-size:13px}
+
+  .empty{text-align:center;color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:12px;padding:26px 16px}
+  .count{color:var(--gold);font-weight:bold}
+  .filehide{display:none}
+
+  .printnote{
+    background:#15120e;border:1px solid var(--line);border-radius:12px;
+    padding:14px 15px;font-size:13.5px;color:var(--muted);line-height:1.6;margin-top:6px
+  }
+  .printnote b{color:var(--ink)}
+  .stamp{font-size:11px;color:#6f6452;text-align:center;margin-top:26px;letter-spacing:.04em}
+  canvas#cv{display:none}
+
+  /* share modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+  .modal.on{display:flex}
+  .modal .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%}
+  .modal h3{margin:0 0 12px;font-family:Georgia,serif}
+  .modal textarea{width:100%;height:74px;background:#15120e;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px;font-size:13px;font-family:monospace;resize:none}
+  .qr{display:flex;justify-content:center;margin:14px 0;min-height:160px;background:#fff;border-radius:10px;padding:10px}
+  .qr img{display:block;width:200px;height:200px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#241a14;border:1px solid var(--accent);color:var(--ink);padding:11px 18px;border-radius:999px;font-size:14px;font-weight:bold;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Photo Booth Helper</p>
+    <h1>The <em>Birthday</em> Framer</h1>
+    <p class="sub">Frame party photos with names, themes & emojis, then print-ready 4×6 JPEGs. Everything runs on your phone — no photos are uploaded.</p>
+  </header>
+
+  <!-- MODE -->
+  <div class="row">
+    <div class="seg" id="modeSeg">
+      <button data-mode="studio" class="on">🎬 Studio (one at a time)</button>
+      <button data-mode="batch">⚡ Batch (many)</button>
+    </div>
+  </div>
+
+  <!-- LIVE PREVIEW -->
+  <section class="card">
+    <h2><span class="num">★</span> Live preview</h2>
+    <div class="preview-wrap"><canvas id="preview"></canvas></div>
+    <div id="studioActions" class="row" style="margin-top:12px">
+      <button class="btn lg" id="saveStudio">⬇︎ Save this framed photo</button>
+      <p class="hint" id="previewHint">Showing a sample image. Add a real photo below — your style stays the same for each kid.</p>
+    </div>
+  </section>
+
+  <!-- PHOTO -->
+  <section class="card">
+    <h2><span class="num">1</span> <span id="photoTitle">Add a photo</span></h2>
+    <div class="two">
+      <button class="btn" id="cameraBtn">📷 Take photo</button>
+      <button class="btn ghost" id="galleryBtn">🖼️ From gallery</button>
+    </div>
+    <input type="file" id="cameraInput" class="filehide" accept="image/*" capture="environment" />
+    <input type="file" id="galleryInput" class="filehide" accept="image/*" />
+    <input type="file" id="batchInput" class="filehide" accept="image/*" multiple />
+    <p class="hint" id="photoHint">Pick a photo, type the kids' names, check the preview, then save. Repeat for the next kid.</p>
+  </section>
+
+  <!-- NAMES & TEXT -->
+  <section class="card">
+    <h2><span class="num">2</span> Names &amp; wording</h2>
+    <div class="row">
+      <label>Kids' names (the big keepsake text)</label>
+      <input type="text" id="names" placeholder="River &amp; Max" maxlength="40" />
+    </div>
+    <div class="two row">
+      <div>
+        <label>Greeting (subtle)</label>
+        <input type="text" id="greeting" placeholder="Happy 8th Birthday River!" maxlength="48" />
+      </div>
+    </div>
+    <div class="row">
+      <label>Date</label>
+      <input type="text" id="date" maxlength="40" />
+    </div>
+  </section>
+
+  <!-- STYLE -->
+  <section class="card">
+    <h2><span class="num">3</span> Style</h2>
+
+    <div class="row">
+      <label>Theme (tap one, then tweak below)</label>
+      <div class="themes" id="themes"></div>
+    </div>
+
+    <div class="row">
+      <label>Orientation</label>
+      <div class="seg" id="orientSeg">
+        <button data-o="auto" class="on">Auto</button>
+        <button data-o="portrait">Portrait</button>
+        <button data-o="landscape">Landscape</button>
+      </div>
+    </div>
+
+    <details id="fineControls">
+      <summary>Fine-tune the look</summary>
+
+      <div class="row" style="margin-top:14px">
+        <label>Name font</label>
+        <select id="font">
+          <option value="luckiest">Luckiest Guy — chunky & fun</option>
+          <option value="bangers">Bangers — comic action</option>
+          <option value="anton">Anton — bold jersey</option>
+          <option value="fredoka">Fredoka — friendly rounded</option>
+          <option value="pacifico">Pacifico — playful script</option>
+          <option value="georgia">Georgia — classic serif</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Accent color</label>
+        <div class="swatches" id="swatches">
+          <button class="sw" style="background:#ff7a59" data-c="#ff7a59"></button>
+          <button class="sw" style="background:#e8b04b" data-c="#e8b04b"></button>
+          <button class="sw" style="background:#3aa0ff" data-c="#3aa0ff"></button>
+          <button class="sw" style="background:#5fcf80" data-c="#5fcf80"></button>
+          <button class="sw" style="background:#c86bff" data-c="#c86bff"></button>
+          <button class="sw" style="background:#ff5d8f" data-c="#ff5d8f"></button>
+          <button class="sw" style="background:#c0392b" data-c="#c0392b"></button>
+          <button class="sw" style="background:#27ae60" data-c="#27ae60"></button>
+          <input type="color" id="customColor" value="#ff7a59" title="Custom color" />
+        </div>
+      </div>
+
+      <div class="two row">
+        <div>
+          <label>Corner emojis</label>
+          <select id="emoji">
+            <option value="none">None</option>
+            <option value="games">🎮 Video games</option>
+            <option value="baseball">⚾ Baseball</option>
+            <option value="basketball">🏀 Basketball</option>
+            <option value="football">🏈 Football</option>
+            <option value="biking">🚲 Biking</option>
+            <option value="party">🎉 Party</option>
+            <option value="stars">⭐ Stars</option>
+          </select>
+        </div>
+        <div>
+          <label>Text background</label>
+          <select id="bg">
+            <option value="strip">Strip bar</option>
+            <option value="badge">Rounded badge</option>
+            <option value="ribbon">Ribbon banner</option>
+            <option value="burst">Sticker burst</option>
+            <option value="none">None (text on photo)</option>
+          </select>
+        </div>
+      </div>
+    </details>
+
+    <div class="row" style="margin-top:14px">
+      <button class="btn ghost" id="shareBtn">🔗 Share this style with other parents</button>
+      <p class="hint">Your style auto-saves on this phone. Share creates a link/QR that loads your style on someone else's phone as their starting point.</p>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="card">
+    <h2><span class="num">✓</span> Saved photos <span id="cnt" style="margin-left:auto;font-size:13px;color:var(--muted)"></span></h2>
+    <div class="row">
+      <button class="btn lg" id="saveAll" disabled>⬇︎ Save all to phone</button>
+    </div>
+    <div id="results"><div class="empty">Saved photos show up here. In Studio, tap “Save this framed photo”. In Batch, add several at once.</div></div>
+    <p class="hint" id="clearWrap" style="display:none"><a href="#" id="clearAll" style="color:var(--muted)">Clear all</a></p>
+  </section>
+
+  <div class="printnote">
+    <b>Then print:</b> open the <b>Canon SELPHY Photo Layout</b> app, connect to your CP1500 over Wi-Fi, and pick the saved photos from your gallery / Downloads. Printing through the app avoids the “?” you can get when printing edited files off an SD card.
+  </div>
+
+  <p class="stamp">Runs entirely in your browser · add to Home Screen to use it offline at the party</p>
+</div>
+
+<canvas id="cv"></canvas>
+
+<!-- Share modal -->
+<div class="modal" id="shareModal">
+  <div class="box">
+    <h3>Share this style</h3>
+    <p class="hint" style="margin-top:0">Send this link (or scan the QR) on another phone. Your theme, font, color, emojis & wording load as a starting point — they just type their own kids’ names.</p>
+    <textarea id="shareLink" readonly></textarea>
+    <div class="row" style="margin-top:10px"><button class="btn" id="copyLink">📋 Copy link</button></div>
+    <div class="qr" id="qrBox"></div>
+    <p class="hint" style="text-align:center">QR uses an online generator (style settings only, never photos). Works when you’re online.</p>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="closeShare">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const pv = $('preview'), pctx = pv.getContext('2d');
+
+  /* ---------- config tables ---------- */
+  const FONTS = {
+    luckiest:'"Luckiest Guy", system-ui, sans-serif',
+    bangers :'"Bangers", system-ui, sans-serif',
+    anton   :'"Anton", system-ui, sans-serif',
+    fredoka :'"Fredoka", system-ui, sans-serif',
+    pacifico:'"Pacifico", cursive',
+    georgia :'Georgia, "Times New Roman", serif'
+  };
+  const SUB_FONT = '"Trebuchet MS","Segoe UI",sans-serif';
+
+  const EMOJI = {
+    none:[],
+    games:['🎮','👾','🕹️','⭐'],
+    baseball:['⚾','🧢','⚾','🧢'],
+    basketball:['🏀','🔥','🏀','🔥'],
+    football:['🏈','🏆','🏈','🏆'],
+    biking:['🚲','⛰️','🚲','⛰️'],
+    party:['🎉','🎈','🎂','🎁'],
+    stars:['⭐','🌟','⭐','🌟']
+  };
+
+  const THEMES = {
+    elegant   :{label:'✨ Elegant',    font:'georgia', accent:'#e8b04b', emoji:'none',       bg:'strip'},
+    games     :{label:'🎮 Video Games',font:'luckiest',accent:'#7c5cff', emoji:'games',      bg:'burst'},
+    baseball  :{label:'⚾ Baseball',    font:'bangers', accent:'#c0392b', emoji:'baseball',   bg:'ribbon'},
+    basketball:{label:'🏀 Basketball',  font:'anton',   accent:'#e67e22', emoji:'basketball', bg:'badge'},
+    football  :{label:'🏈 Football',    font:'anton',   accent:'#3f7d3f', emoji:'football',   bg:'ribbon'},
+    biking    :{label:'🚲 Biking',      font:'fredoka', accent:'#27ae60', emoji:'biking',     bg:'badge'}
+  };
+
+  /* ---------- state ---------- */
+  const today = new Date().toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+  const state = {
+    mode:'studio',
+    theme:'elegant',
+    font:'georgia',
+    accent:'#e8b04b',
+    emoji:'none',
+    bg:'strip',
+    orient:'auto',
+    names:'',
+    greeting:'',
+    date:today,
+    studioPhoto:null,   // ImageBitmap of the current studio photo (null = sample)
+    blobs:[]            // {url,name}
+  };
+
+  /* ---------- persistence ---------- */
+  const LS_KEY='bf_style_v2';
+  const STYLE_FIELDS=['theme','font','accent','emoji','bg','orient','greeting','date'];
+  function gatherStyle(){ const o={}; STYLE_FIELDS.forEach(k=>o[k]=state[k]); return o; }
+  function applyStyle(o){
+    if(!o) return;
+    STYLE_FIELDS.forEach(k=>{ if(o[k]!=null) state[k]=o[k]; });
+  }
+  function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(gatherStyle())); }catch(e){} }
+  function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ return null; } }
+
+  /* ---------- load order: shared link > localStorage > defaults ---------- */
+  (function init(){
+    let fromHash=null;
+    const m = location.hash.match(/[#&]s=([^&]+)/);
+    if(m){ try{ fromHash = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); }catch(e){} }
+    applyStyle(fromHash || loadLocal());
+    if(fromHash) saveLocal(); // adopt the shared style as this phone's default
+  })();
+
+  /* ---------- fonts ---------- */
+  let fontsReady=false;
+  async function ensureFonts(){
+    try{
+      await Promise.all(['"Luckiest Guy"','"Bangers"','"Anton"','"Fredoka"','"Pacifico"']
+        .map(f=>document.fonts.load('64px '+f)));
+      await document.fonts.ready;
+    }catch(e){}
+    fontsReady=true;
+  }
+
+  /* ---------- dimensions ---------- */
+  function dims(){
+    let portrait;
+    if(state.orient==='portrait') portrait=true;
+    else if(state.orient==='landscape') portrait=false;
+    else portrait = state.studioPhoto ? state.studioPhoto.height>state.studioPhoto.width : true;
+    return portrait ? {W:1200,H:1800} : {W:1800,H:1200};
+  }
+
+  /* ---------- sample image (used before a real photo is added) ---------- */
+  function drawSample(c,W,H){
+    const g=c.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,'#6dd5ed'); g.addColorStop(.55,'#8e9efc'); g.addColorStop(1,'#c86bff');
+    c.fillStyle=g; c.fillRect(0,0,W,H);
+    // sun
+    c.fillStyle='rgba(255,255,255,.85)'; c.beginPath(); c.arc(W*0.75,H*0.28,Math.min(W,H)*0.12,0,7); c.fill();
+    // hills
+    c.fillStyle='rgba(40,90,60,.55)'; c.beginPath();
+    c.moveTo(0,H*0.72); c.quadraticCurveTo(W*0.3,H*0.55,W*0.55,H*0.7);
+    c.quadraticCurveTo(W*0.8,H*0.85,W,H*0.66); c.lineTo(W,H); c.lineTo(0,H); c.fill();
+    c.fillStyle='rgba(255,255,255,.6)'; c.font='bold '+Math.round(W*0.05)+'px '+SUB_FONT;
+    c.textAlign='center'; c.textBaseline='middle'; c.fillText('SAMPLE PHOTO',W/2,H*0.42);
+  }
+
+  /* ---------- text fitting ---------- */
+  function fitFont(c,text,family,maxW,startSize,weight){
+    let size=startSize;
+    const set=s=>c.font=(weight?weight+' ':'')+s+'px '+family;
+    set(size);
+    while(c.measureText(text).width>maxW && size>12){ size-=2; set(size); }
+    return size;
+  }
+
+  function roundRect(c,x,y,w,h,r){
+    r=Math.min(r,w/2,h/2);
+    c.beginPath();
+    c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+
+  /* ---------- background designs behind text ---------- */
+  function drawTextBg(c,W,H,band,kind,accent){
+    const {x,y,w,h}=band;
+    if(kind==='none') return;
+    if(kind==='strip'){
+      c.fillStyle='rgba(255,255,255,0.94)'; c.fillRect(x,y,w,h);
+      c.fillStyle=accent; c.fillRect(x,y,w,Math.max(4,Math.round(H*0.006)));
+      return;
+    }
+    if(kind==='badge'){
+      const bw=w*0.9,bx=x+(w-bw)/2;
+      c.fillStyle='rgba(255,255,255,0.95)'; roundRect(c,bx,y,bw,h,Math.round(h*0.22)); c.fill();
+      c.lineWidth=Math.max(4,Math.round(H*0.006)); c.strokeStyle=accent;
+      roundRect(c,bx+c.lineWidth,y+c.lineWidth,bw-2*c.lineWidth,h-2*c.lineWidth,Math.round(h*0.18)); c.stroke();
+      return;
+    }
+    if(kind==='ribbon'){
+      const notch=h*0.26;
+      c.fillStyle=accent;
+      c.beginPath();
+      c.moveTo(x,y); c.lineTo(x+w,y); c.lineTo(x+w-notch,y+h/2); c.lineTo(x+w,y+h);
+      c.lineTo(x,y+h); c.lineTo(x+notch,y+h/2); c.closePath(); c.fill();
+      // inner cream panel (wide enough to hold the names)
+      const ix=x+notch*0.7, iw=w-notch*1.4;
+      c.fillStyle='rgba(255,255,255,0.94)'; c.fillRect(ix,y+h*0.1,iw,h*0.8);
+      return;
+    }
+    if(kind==='burst'){
+      const cx=x+w/2, cy=y+h/2, R=Math.max(w,h)*0.62, spikes=24;
+      c.fillStyle=accent; c.beginPath();
+      for(let i=0;i<spikes*2;i++){
+        const r = i%2? R : R*0.78;
+        const a = Math.PI*i/spikes;
+        const px=cx+Math.cos(a)*r, py=cy+Math.sin(a)*r*(h/w);
+        i?c.lineTo(px,py):c.moveTo(px,py);
+      }
+      c.closePath(); c.fill();
+      const bw=w*0.78, bh=h*0.74;
+      c.fillStyle='rgba(255,255,255,0.95)'; roundRect(c,cx-bw/2,cy-bh/2,bw,bh,Math.round(bh*0.2)); c.fill();
+      return;
+    }
+  }
+
+  /* ---------- corner emojis ---------- */
+  function drawCorners(c,W,H,key){
+    const set=EMOJI[key]; if(!set||!set.length) return;
+    const size=Math.round(Math.min(W,H)*0.085);
+    const inset=Math.round(Math.min(W,H)*0.045)+size/2;
+    const pts=[[inset,inset],[W-inset,inset],[W-inset,H-inset],[inset,H-inset]];
+    c.textAlign='center'; c.textBaseline='middle';
+    c.font=size+'px "Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    c.save(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=size*0.12; c.shadowOffsetY=2;
+    pts.forEach((p,i)=>{ c.fillText(set[i%set.length],p[0],p[1]); });
+    c.restore();
+  }
+
+  /* ---------- master frame renderer ---------- */
+  function renderTo(c,W,H){
+    c.canvas.width=W; c.canvas.height=H;
+    c.clearRect(0,0,W,H);
+
+    // photo (cover-fit center) or sample
+    const photo=state.studioPhoto;
+    if(photo){
+      const scale=Math.max(W/photo.width,H/photo.height);
+      const dw=photo.width*scale, dh=photo.height*scale;
+      c.drawImage(photo,(W-dw)/2,(H-dh)/2,dw,dh);
+    } else {
+      drawSample(c,W,H);
+    }
+
+    const accent=state.accent;
+
+    // double border
+    const m=Math.round(W*0.030), lw=Math.round(W*0.012);
+    c.strokeStyle=accent; c.lineWidth=lw;
+    c.strokeRect(m,m,W-2*m,H-2*m);
+    c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
+    const m2=m+Math.round(lw*0.9); c.strokeRect(m2,m2,W-2*m2,H-2*m2);
+
+    // text band geometry
+    const inner=m+lw;
+    const portrait=H>W;
+    const bandH=Math.round(H*(portrait?0.205:0.255));
+    const band={x:inner, y:H-inner-bandH, w:W-2*inner, h:bandH};
+
+    drawTextBg(c,W,H,band,state.bg,accent);
+    drawCorners(c,W,H,state.emoji);
+
+    // text content
+    const names=(state.names||'').trim();
+    const greeting=(state.greeting||'').trim();
+    const date=(state.date||'').trim();
+    const onPhoto = state.bg==='none';
+    const cx=W/2;
+    const pad=Math.round(band.w*0.07);
+    const maxW=band.w-pad*2;
+
+    // colors depending on background
+    const darkText = !onPhoto; // text sits on a light panel for every bg except "none"
+    const nameColor = darkText ? '#2a241c' : '#ffffff';
+    const subColor  = darkText ? 'rgba(60,50,40,.85)' : 'rgba(255,255,255,.92)';
+
+    c.textAlign='center';
+    function withGlow(fn){
+      c.save();
+      if(onPhoto){ c.shadowColor='rgba(0,0,0,.6)'; c.shadowBlur=W*0.012; c.shadowOffsetY=2; c.lineJoin='round'; }
+      fn(); c.restore();
+    }
+
+    // vertical layout inside band
+    let cursorTop = band.y + band.h*(greeting?0.26:0.16);
+    if(greeting){
+      const gs=fitFont(c,greeting,FONTS[state.font],maxW,Math.round(band.h*0.16),'');
+      withGlow(()=>{ c.fillStyle=subColor; c.textBaseline='middle';
+        c.font=gs+'px '+FONTS[state.font]; c.fillText(greeting,cx,band.y+band.h*0.20); });
+    }
+    if(names){
+      const ns=fitFont(c,names,FONTS[state.font],maxW,Math.round(band.h*(greeting?0.42:0.5)),'');
+      withGlow(()=>{
+        c.fillStyle=nameColor; c.textBaseline='middle'; c.font=ns+'px '+FONTS[state.font];
+        if(onPhoto){ c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=ns*0.06; c.strokeText(names,cx,band.y+band.h*(greeting?0.52:0.46)); }
+        c.fillText(names,cx,band.y+band.h*(greeting?0.52:0.46));
+      });
+    }
+    if(date){
+      const up=date.toUpperCase();
+      const ds=fitFont(c,up,SUB_FONT,maxW,Math.round(band.h*0.135),'bold');
+      withGlow(()=>{ c.fillStyle = darkText? accent : '#fff'; c.textBaseline='middle';
+        c.font='bold '+ds+'px '+SUB_FONT; c.fillText(up,cx,band.y+band.h*0.85); });
+    }
+  }
+
+  /* ---------- live preview (debounced) ---------- */
+  let raf=0;
+  function schedulePreview(){
+    if(raf) return;
+    raf=requestAnimationFrame(async ()=>{
+      raf=0;
+      if(!fontsReady) await ensureFonts();
+      const {W,H}=dims();
+      renderTo(pctx,W,H);
+    });
+  }
+
+  /* ---------- export one frame to a blob at full res ---------- */
+  async function exportCurrent(){
+    if(!fontsReady) await ensureFonts();
+    const {W,H}=dims();
+    renderTo(ctx,W,H);
+    return await new Promise(res=>cv.toBlob(res,'image/jpeg',0.92));
+  }
+
+  /* ---------- decode an uploaded file to a bitmap ---------- */
+  async function fileToBitmap(file){
+    try{ return await createImageBitmap(file,{imageOrientation:'from-image'}); }
+    catch(e){ return await createImageBitmap(file); }
+  }
+
+  /* ---------- results UI ---------- */
+  function slug(){ return (state.names||'photo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'photo'; }
+  function addResult(blob){
+    const idx=state.blobs.length+1;
+    const url=URL.createObjectURL(blob);
+    const name='birthday-'+slug()+'-'+String(idx).padStart(2,'0')+'.jpg';
+    state.blobs.push({url,name});
+    if(state.blobs.length===1) $('results').innerHTML='';
+    let grid=$('grid');
+    if(!grid){ grid=document.createElement('div'); grid.id='grid'; grid.className='grid'; $('results').appendChild(grid); }
+    const tile=document.createElement('div');
+    tile.className='tile';
+    tile.innerHTML='<img src="'+url+'" alt="framed photo">'+
+      '<div class="bar"><a class="btn" download="'+name+'" href="'+url+'">⬇︎ Save</a></div>';
+    grid.appendChild(tile);
+    $('saveAll').disabled=false; $('clearWrap').style.display='';
+    $('cnt').innerHTML='<span class="count">'+state.blobs.length+'</span> ready';
+  }
+
+  /* ========================= wire up ========================= */
+
+  // mode
+  $('modeSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.mode=b.dataset.mode;
+    const studio=state.mode==='studio';
+    $('studioActions').style.display=studio?'':'none';
+    $('photoTitle').textContent=studio?'Add a photo':'Add several photos';
+    $('photoHint').textContent=studio
+      ? "Pick a photo, type the kids' names, check the preview, then save. Repeat for the next kid."
+      : 'Adds every selected photo straight to the saved list using the current style.';
+    schedulePreview();
+  });
+
+  // photo inputs
+  $('cameraBtn').addEventListener('click',()=> (state.mode==='studio'?$('cameraInput'):$('cameraInput')).click());
+  $('galleryBtn').addEventListener('click',()=> (state.mode==='studio'?$('galleryInput'):$('batchInput')).click());
+  $('cameraInput').addEventListener('change',e=>onStudioFile(e.target.files[0]));
+  $('galleryInput').addEventListener('change',e=>onStudioFile(e.target.files[0]));
+  $('batchInput').addEventListener('change',e=>onBatchFiles(e.target.files));
+
+  async function onStudioFile(file){
+    if(!file||!file.type.startsWith('image/')) return;
+    state.studioPhoto = await fileToBitmap(file);
+    $('previewHint').textContent='Looks good? Tap “Save this framed photo”, then load the next kid.';
+    schedulePreview();
+    $('cameraInput').value=''; $('galleryInput').value='';
+  }
+  async function onBatchFiles(list){
+    const files=[...list].filter(f=>f.type.startsWith('image/'));
+    for(const f of files){
+      state.studioPhoto = await fileToBitmap(f);
+      const blob = await exportCurrent();
+      addResult(blob);
+    }
+    state.studioPhoto=null; // back to sample for preview
+    schedulePreview();
+    $('batchInput').value='';
+    toast(files.length+' photo'+(files.length===1?'':'s')+' framed');
+  }
+
+  // save studio shot
+  $('saveStudio').addEventListener('click',async ()=>{
+    const blob=await exportCurrent();
+    addResult(blob);
+    // auto-download too
+    const last=state.blobs[state.blobs.length-1];
+    const a=document.createElement('a'); a.href=last.url; a.download=last.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Saved '+last.name);
+  });
+
+  // text fields
+  ['names','greeting','date'].forEach(k=>{
+    const el=$(k); el.value=state[k]||'';
+    el.addEventListener('input',()=>{ state[k]=el.value; saveLocal(); schedulePreview(); });
+  });
+
+  // themes
+  (function buildThemes(){
+    const wrap=$('themes');
+    Object.keys(THEMES).forEach(key=>{
+      const t=THEMES[key];
+      const b=document.createElement('button');
+      b.className='theme'+(state.theme===key?' on':''); b.dataset.t=key; b.textContent=t.label;
+      wrap.appendChild(b);
+    });
+    wrap.addEventListener('click',e=>{
+      const b=e.target.closest('.theme'); if(!b) return;
+      const key=b.dataset.t, t=THEMES[key];
+      state.theme=key; state.font=t.font; state.accent=t.accent; state.emoji=t.emoji; state.bg=t.bg;
+      syncControls(); saveLocal(); schedulePreview();
+    });
+  })();
+
+  // orientation
+  $('orientSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.orient=b.dataset.o; saveLocal(); schedulePreview();
+  });
+
+  // font / emoji / bg selects
+  $('font').addEventListener('change',e=>{ state.font=e.target.value; saveLocal(); schedulePreview(); });
+  $('emoji').addEventListener('change',e=>{ state.emoji=e.target.value; saveLocal(); schedulePreview(); });
+  $('bg').addEventListener('change',e=>{ state.bg=e.target.value; saveLocal(); schedulePreview(); });
+
+  // accent
+  function setAccent(c){
+    state.accent=c;
+    document.documentElement.style.setProperty('--accent',c);
+    if(/^#[0-9a-f]{6}$/i.test(c)) $('customColor').value=c;
+    [...document.querySelectorAll('.sw')].forEach(s=>s.classList.toggle('on',s.dataset.c===c));
+  }
+  $('swatches').addEventListener('click',e=>{
+    const s=e.target.closest('.sw'); if(!s) return;
+    setAccent(s.dataset.c); saveLocal(); schedulePreview();
+  });
+  $('customColor').addEventListener('input',e=>{ setAccent(e.target.value); saveLocal(); schedulePreview(); });
+
+  // reflect state into the controls (after theme change / load)
+  function syncControls(){
+    setAccent(state.accent);
+    $('font').value=state.font;
+    $('emoji').value=state.emoji;
+    $('bg').value=state.bg;
+    [...$('orientSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.o===state.orient));
+    [...$('themes').children].forEach(x=>x.classList.toggle('on',x.dataset.t===state.theme));
+    document.documentElement.style.setProperty('--accent',state.accent);
+  }
+
+  // save all
+  $('saveAll').addEventListener('click',async ()=>{
+    for(const b of state.blobs){
+      const a=document.createElement('a'); a.href=b.url; a.download=b.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      await new Promise(r=>setTimeout(r,350));
+    }
+  });
+  $('clearAll').addEventListener('click',e=>{
+    e.preventDefault();
+    state.blobs.forEach(b=>URL.revokeObjectURL(b.url));
+    state.blobs=[];
+    $('results').innerHTML='<div class="empty">Saved photos show up here. In Studio, tap “Save this framed photo”. In Batch, add several at once.</div>';
+    $('saveAll').disabled=true; $('clearWrap').style.display='none'; $('cnt').textContent='';
+  });
+
+  /* ---------- share ---------- */
+  function buildShareLink(){
+    const json=JSON.stringify(gatherStyle());
+    const data=encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+    return location.origin+location.pathname+'#s='+data;
+  }
+  $('shareBtn').addEventListener('click',()=>{
+    const link=buildShareLink();
+    $('shareLink').value=link;
+    $('qrBox').innerHTML='<img alt="QR code" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data='+encodeURIComponent(link)+'">';
+    $('shareModal').classList.add('on');
+  });
+  $('closeShare').addEventListener('click',()=>$('shareModal').classList.remove('on'));
+  $('shareModal').addEventListener('click',e=>{ if(e.target===$('shareModal')) $('shareModal').classList.remove('on'); });
+  $('copyLink').addEventListener('click',async ()=>{
+    const v=$('shareLink').value;
+    try{ await navigator.clipboard.writeText(v); }catch(e){ $('shareLink').select(); document.execCommand('copy'); }
+    toast('Link copied');
+  });
+
+  /* ---------- toast ---------- */
+  let toastT=0;
+  function toast(msg){
+    const t=$('toast'); t.textContent=msg; t.classList.add('on');
+    clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),1800);
+  }
+
+  /* ---------- go ---------- */
+  syncControls();
+  ensureFonts().then(schedulePreview);
+  schedulePreview();
+})();
+</script>
+</body>
+</html>
