@@ -525,8 +525,8 @@
   /* ---------- corner emojis ---------- */
   function drawCorners(c,W,H,key){
     const set=EMOJI[key]; if(!set||!set.length) return;
-    const size=Math.round(Math.min(W,H)*0.08);
-    const inset=Math.round(Math.min(W,H)*0.065)+size/2; // matches the print-safe border margin
+    const size=Math.round(Math.min(W,H)*0.078);
+    const inset=Math.round(Math.min(W,H)*0.085)+size/2; // tucked inside the print-safe border margin
     const pts=[[inset,inset],[W-inset,inset],[W-inset,H-inset],[inset,H-inset]];
     c.textAlign='center'; c.textBaseline='middle';
     c.font=size+'px "Segoe UI Emoji","Noto Color Emoji",sans-serif';
