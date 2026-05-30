@@ -525,8 +525,8 @@
   /* ---------- corner emojis ---------- */
   function drawCorners(c,W,H,key){
     const set=EMOJI[key]; if(!set||!set.length) return;
-    const size=Math.round(Math.min(W,H)*0.085);
-    const inset=Math.round(Math.min(W,H)*0.045)+size/2;
+    const size=Math.round(Math.min(W,H)*0.08);
+    const inset=Math.round(Math.min(W,H)*0.065)+size/2; // matches the print-safe border margin
     const pts=[[inset,inset],[W-inset,inset],[W-inset,H-inset],[inset,H-inset]];
     c.textAlign='center'; c.textBaseline='middle';
     c.font=size+'px "Segoe UI Emoji","Noto Color Emoji",sans-serif';
@@ -552,8 +552,13 @@
 
     const accent=state.accent;
 
+    // Print-safe margin. Borderless printers (Canon SELPHY etc.) enlarge the image
+    // and crop a few % at every edge, so the photo bleeds full but the border, text
+    // panel and corner emojis all stay inside this inset to survive the overscan.
+    const SAFE=Math.round(Math.min(W,H)*0.06);
+
     // double border
-    const m=Math.round(W*0.030), lw=Math.round(W*0.012);
+    const m=SAFE, lw=Math.round(W*0.011);
     c.strokeStyle=accent; c.lineWidth=lw;
     c.strokeRect(m,m,W-2*m,H-2*m);
     c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
