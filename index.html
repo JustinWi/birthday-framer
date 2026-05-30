@@ -567,12 +567,15 @@
     const date=(state.date||'').trim();
     const font=FONTS[state.font];
 
-    // top strip geometry computed first: lets the top border drop to the
-    // title's mid-height so the banner straddles it.
-    const topParts=[greeting,date].filter(Boolean);
-    const tH=Math.round(H*(portrait?0.088:0.105));
-    const topBand={x:innerX, y:innerY, w:W-2*innerX, h:tH};
-    const borderTopY = topParts.length ? Math.round(topBand.y + tH/2) : my;
+    // Layout: kids' NAMES (big) on top, greeting + date on the bottom strip.
+    const botParts=[greeting,date].filter(Boolean);
+    const nH=Math.round(H*(portrait?0.14:0.17));     // tall band for the names
+    const sH=Math.round(H*(portrait?0.088:0.105));   // thin band for greeting + date
+    const topBand={x:innerX, y:innerY, w:W-2*innerX, h:nH};
+    const botBand={x:innerX, y:H-innerY-sH, w:W-2*innerX, h:sH};
+    // bottom border drops to the bottom strip's mid-height so it straddles it;
+    // the top border stays at the normal margin.
+    const borderBottomY = botParts.length ? Math.round(botBand.y + sH/2) : (H-my);
 
     // draw one centered line of text inside a panel's text rect
     function drawLine(tr, text, capFactor){
@@ -587,27 +590,38 @@
       c.restore();
     }
 
-    // double border — top edge lowered to the title's middle
-    c.strokeStyle=accent; c.lineWidth=lw;
-    c.strokeRect(mx, borderTopY, W-2*mx, (H-my)-borderTopY);
-    c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
-    const o=Math.round(lw*0.9); c.strokeRect(mx+o, borderTopY+o, W-2*(mx+o), (H-my-o)-(borderTopY+o));
-
-    // TOP strip drawn in front of the border so the title straddles it
-    if(topParts.length){
-      const tr=drawTextBg(c,W,H,topBand,state.bg,accent);
-      drawLine(tr, topParts.join('   ·   '), 0.5);
+    // two emojis at the left and right inside a strip; returns the horizontal
+    // space used on each side so the centered text can avoid them.
+    function drawStripEmojis(tr, key){
+      const set=EMOJI[key]; if(!set||!set.length) return 0;
+      const size=Math.round(tr.h*0.62), cy=tr.y+tr.h/2;
+      c.textAlign='center'; c.textBaseline='middle';
+      c.font=size+'px "Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      c.save(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=size*0.12; c.shadowOffsetY=2;
+      c.fillText(set[3%set.length], tr.x+size*0.62, cy);
+      c.fillText(set[2%set.length], tr.x+tr.w-size*0.62, cy);
+      c.restore();
+      return size*1.25;
     }
 
-    // BOTTOM strip: the kids' names (shorter band now that there's no extra text)
+    // double border — top at the normal margin, bottom dropped to the strip's middle
+    c.strokeStyle=accent; c.lineWidth=lw;
+    c.strokeRect(mx, my, W-2*mx, borderBottomY-my);
+    c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
+    const o=Math.round(lw*0.9); c.strokeRect(mx+o, my+o, W-2*(mx+o), (borderBottomY-o)-(my+o));
+
+    // TOP strip: the kids' names (big)
     if(names){
-      const bH=Math.round(H*(portrait?0.14:0.17));
-      const botBand={x:innerX, y:H-innerY-bH, w:W-2*innerX, h:bH};
-      const tr=drawTextBg(c,W,H,botBand,state.bg,accent);
+      const tr=drawTextBg(c,W,H,topBand,state.bg,accent);
       drawLine(tr, names, 0.64);
     }
 
-    drawCorners(c,W,H,state.emoji);
+    // BOTTOM strip: greeting + date, in front of the border, emojis at the ends
+    if(botParts.length){
+      const tr=drawTextBg(c,W,H,botBand,state.bg,accent);
+      const zone=drawStripEmojis(tr, state.emoji);
+      drawLine({x:tr.x+zone, y:tr.y, w:tr.w-2*zone, h:tr.h, light:tr.light}, botParts.join('   ·   '), 0.5);
+    }
   }
 
   /* ---------- live preview (debounced) ---------- */
