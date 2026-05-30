@@ -574,8 +574,9 @@
     const topBand={x:innerX, y:innerY, w:W-2*innerX, h:nH};
     const botBand={x:innerX, y:H-innerY-sH, w:W-2*innerX, h:sH};
     // bottom border drops to the bottom strip's mid-height so it straddles it;
-    // the top border stays at the normal margin.
+    // top border drops to ~1/3 down the names strip so the names banner straddles it.
     const borderBottomY = botParts.length ? Math.round(botBand.y + sH/2) : (H-my);
+    const borderTopY = names ? Math.round(topBand.y + nH/3) : my;
 
     // draw one centered line of text inside a panel's text rect
     function drawLine(tr, text, capFactor){
@@ -604,11 +605,11 @@
       return size*1.25;
     }
 
-    // double border — top at the normal margin, bottom dropped to the strip's middle
+    // double border — top straddles the names strip, bottom straddles the date strip
     c.strokeStyle=accent; c.lineWidth=lw;
-    c.strokeRect(mx, my, W-2*mx, borderBottomY-my);
+    c.strokeRect(mx, borderTopY, W-2*mx, borderBottomY-borderTopY);
     c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
-    const o=Math.round(lw*0.9); c.strokeRect(mx+o, my+o, W-2*(mx+o), (borderBottomY-o)-(my+o));
+    const o=Math.round(lw*0.9); c.strokeRect(mx+o, borderTopY+o, W-2*(mx+o), (borderBottomY-o)-(borderTopY+o));
 
     // TOP strip: the kids' names (big)
     if(names){
