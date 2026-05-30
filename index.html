@@ -196,8 +196,8 @@
       <button class="btn ghost" id="galleryBtn">🖼️ From gallery</button>
     </div>
     <input type="file" id="cameraInput" class="filehide" accept="image/*" capture="environment" />
-    <input type="file" id="galleryInput" class="filehide" accept="image/*" />
-    <input type="file" id="batchInput" class="filehide" accept="image/*" multiple />
+    <input type="file" id="galleryInput" class="filehide" accept="image/*,.heic,.heif" />
+    <input type="file" id="batchInput" class="filehide" accept="image/*,.heic,.heif" multiple />
     <p class="hint" id="photoHint">Pick a photo, type the kids' names, check the preview, then save. Repeat for the next kid.</p>
   </section>
 
@@ -640,10 +640,49 @@
     return await new Promise(res=>cv.toBlob(res,'image/jpeg',0.92));
   }
 
+  /* ---------- HEIC/HEIF support (phones often save these; browsers can't decode them) ---------- */
+  function isHeic(file){
+    const t=(file.type||'').toLowerCase(), n=(file.name||'').toLowerCase();
+    return t.includes('heic')||t.includes('heif')||/\.(heic|heif)$/.test(n);
+  }
+  function isImageFile(file){
+    const t=(file.type||'').toLowerCase();
+    return t.startsWith('image/')||isHeic(file)||t===''; // empty type: trust the picker
+  }
+  let heicLib=null, heicLoading=null;
+  function loadHeic(){
+    if(heicLib) return Promise.resolve(heicLib);
+    if(heicLoading) return heicLoading;
+    heicLoading=new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='heic2any.min.js';
+      s.onload=()=> window.heic2any ? (heicLib=window.heic2any, res(heicLib)) : rej(new Error('heic2any missing'));
+      s.onerror=()=>rej(new Error('Could not load HEIC support (need internet the first time)'));
+      document.head.appendChild(s);
+    });
+    return heicLoading;
+  }
+  async function convertHeic(file){
+    toast('Converting photo… first HEIC takes a few seconds');
+    const lib=await loadHeic();
+    const out=await lib({blob:file, toType:'image/jpeg', quality:0.92});
+    return Array.isArray(out)?out[0]:out;
+  }
+
   /* ---------- decode an uploaded file to a bitmap ---------- */
   async function fileToBitmap(file){
+    // native decode first (JPEG/PNG/WebP/GIF)
     try{ return await createImageBitmap(file,{imageOrientation:'from-image'}); }
-    catch(e){ return await createImageBitmap(file); }
+    catch(e){}
+    // fallback: HEIC/HEIF or anything the browser couldn't decode natively
+    const jpeg = await convertHeic(file); // throws if it really can't be read
+    try{ return await createImageBitmap(jpeg,{imageOrientation:'from-image'}); }
+    catch(e){ return await createImageBitmap(jpeg); }
+  }
+
+  function setBusy(on){
+    $('cameraBtn').disabled=on; $('galleryBtn').disabled=on;
+    if(on) $('previewHint').textContent='Loading photo…';
   }
 
   /* ---------- results UI ---------- */
@@ -689,23 +728,37 @@
   $('batchInput').addEventListener('change',e=>onBatchFiles(e.target.files));
 
   async function onStudioFile(file){
-    if(!file||!file.type.startsWith('image/')) return;
-    state.studioPhoto = await fileToBitmap(file);
-    $('previewHint').textContent='Looks good? Tap “Save this framed photo”, then load the next kid.';
-    schedulePreview();
-    $('cameraInput').value=''; $('galleryInput').value='';
+    if(!file||!isImageFile(file)){ toast('That file is not a photo'); return; }
+    setBusy(true);
+    try{
+      state.studioPhoto = await fileToBitmap(file);
+      $('previewHint').textContent='Looks good? Tap “Save this framed photo”, then load the next kid.';
+      schedulePreview();
+    }catch(err){
+      $('previewHint').textContent='Couldn’t open that photo.';
+      toast('Couldn’t open that photo — try a JPEG, or set the camera to “Most compatible”.');
+    }finally{
+      setBusy(false);
+      $('cameraInput').value=''; $('galleryInput').value='';
+    }
   }
   async function onBatchFiles(list){
-    const files=[...list].filter(f=>f.type.startsWith('image/'));
+    const files=[...list].filter(isImageFile);
+    if(!files.length){ toast('No photos found'); $('batchInput').value=''; return; }
+    setBusy(true);
+    let ok=0, fail=0;
     for(const f of files){
-      state.studioPhoto = await fileToBitmap(f);
-      const blob = await exportCurrent();
-      addResult(blob);
+      try{
+        state.studioPhoto = await fileToBitmap(f);
+        const blob = await exportCurrent();
+        addResult(blob); ok++;
+      }catch(e){ fail++; }
     }
     state.studioPhoto=null; // back to sample for preview
     schedulePreview();
+    setBusy(false);
     $('batchInput').value='';
-    toast(files.length+' photo'+(files.length===1?'':'s')+' framed');
+    toast(ok+' framed'+(fail? ', '+fail+' could not be read':''));
   }
 
   // save studio shot
