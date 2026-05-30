@@ -238,6 +238,23 @@
       </div>
     </div>
 
+    <div class="two row">
+      <div>
+        <label>Names section</label>
+        <div class="seg" id="namesPosSeg">
+          <button data-p="top" class="on">Top</button>
+          <button data-p="bottom">Bottom</button>
+        </div>
+      </div>
+      <div>
+        <label>Date line section</label>
+        <div class="seg" id="infoPosSeg">
+          <button data-p="top">Top</button>
+          <button data-p="bottom" class="on">Bottom</button>
+        </div>
+      </div>
+    </div>
+
     <details id="fineControls">
       <summary>Fine-tune the look</summary>
 
@@ -387,6 +404,8 @@
     emoji:'none',
     bg:'strip',
     orient:'auto',
+    namesPos:'top',
+    infoPos:'bottom',
     names:'',
     greeting:'',
     date:today,
@@ -396,7 +415,7 @@
 
   /* ---------- persistence ---------- */
   const LS_KEY='bf_style_v2';
-  const STYLE_FIELDS=['theme','font','accent','emoji','bg','orient','greeting','date'];
+  const STYLE_FIELDS=['theme','font','accent','emoji','bg','orient','namesPos','infoPos','greeting','date'];
   function gatherStyle(){ const o={}; STYLE_FIELDS.forEach(k=>o[k]=state[k]); return o; }
   function applyStyle(o){
     if(!o) return;
@@ -558,8 +577,6 @@
     // fixed pixel value) so every side clears equally — a fixed inset becomes a
     // smaller % on the long edge, which crowds the top/bottom. Photo still bleeds full.
     const mx=Math.round(W*0.06), my=Math.round(H*0.06);
-    const lw=Math.round(W*0.011);
-    const innerX=mx+lw, innerY=my+lw;
     const portrait=H>W;
 
     const names=(state.names||'').trim();
@@ -567,16 +584,13 @@
     const date=(state.date||'').trim();
     const font=FONTS[state.font];
 
-    // Layout: kids' NAMES (big) on top, greeting + date on the bottom strip.
-    const botParts=[greeting,date].filter(Boolean);
+    // No border. Two sections — names (big) and the date line (greeting + date) —
+    // each placed at the top or bottom per the user's choice; when both share a
+    // side they stack (names above the date line).
+    const botText=[greeting,date].filter(Boolean).join('   ·   ');
     const nH=Math.round(H*(portrait?0.14:0.17));     // tall band for the names
     const sH=Math.round(H*(portrait?0.088:0.105));   // thin band for greeting + date
-    const topBand={x:innerX, y:innerY, w:W-2*innerX, h:nH};
-    const botBand={x:innerX, y:H-innerY-sH, w:W-2*innerX, h:sH};
-    // bottom border drops to the bottom strip's mid-height so it straddles it;
-    // top border drops to ~1/3 down the names strip so the names banner straddles it.
-    const borderBottomY = botParts.length ? Math.round(botBand.y + sH/2) : (H-my);
-    const borderTopY = names ? Math.round(topBand.y + nH/3) : my;
+    const gap=Math.round(H*0.014);
 
     // draw one centered line of text inside a panel's text rect
     function drawLine(tr, text, capFactor){
@@ -605,24 +619,30 @@
       return size*1.25;
     }
 
-    // double border — top straddles the names strip, bottom straddles the date strip
-    c.strokeStyle=accent; c.lineWidth=lw;
-    c.strokeRect(mx, borderTopY, W-2*mx, borderBottomY-borderTopY);
-    c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
-    const o=Math.round(lw*0.9); c.strokeRect(mx+o, borderTopY+o, W-2*(mx+o), (borderBottomY-o)-(borderTopY+o));
+    // build the section list (names first so it stacks above the date line)
+    const sections=[];
+    if(names) sections.push({pos:state.namesPos, h:nH, draw:tr=>drawLine(tr,names,0.64)});
+    if(botText) sections.push({pos:state.infoPos, h:sH, draw:tr=>{
+      const zone=drawStripEmojis(tr,state.emoji);
+      drawLine({x:tr.x+zone, y:tr.y, w:tr.w-2*zone, h:tr.h, light:tr.light}, botText, 0.5);
+    }});
 
-    // TOP strip: the kids' names (big)
-    if(names){
-      const tr=drawTextBg(c,W,H,topBand,state.bg,accent);
-      drawLine(tr, names, 0.64);
-    }
+    const top=sections.filter(s=>s.pos==='top');
+    const bottom=sections.filter(s=>s.pos==='bottom');
 
-    // BOTTOM strip: greeting + date, in front of the border, emojis at the ends
-    if(botParts.length){
-      const tr=drawTextBg(c,W,H,botBand,state.bg,accent);
-      const zone=drawStripEmojis(tr, state.emoji);
-      drawLine({x:tr.x+zone, y:tr.y, w:tr.w-2*zone, h:tr.h, light:tr.light}, botParts.join('   ·   '), 0.5);
-    }
+    // top region: stack downward from the top margin
+    let ty=my;
+    top.forEach(s=>{ s.y=ty; ty+=s.h+gap; });
+    // bottom region: stack so the group ends at the bottom margin
+    const botTotal=bottom.reduce((a,s)=>a+s.h,0)+(bottom.length?gap*(bottom.length-1):0);
+    let bcur=H-my-botTotal;
+    bottom.forEach(s=>{ s.y=bcur; bcur+=s.h+gap; });
+
+    sections.forEach(s=>{
+      const band={x:mx, y:s.y, w:W-2*mx, h:s.h};
+      const tr=drawTextBg(c,W,H,band,state.bg,accent);
+      s.draw(tr);
+    });
   }
 
   /* ---------- live preview (debounced) ---------- */
@@ -807,6 +827,17 @@
     b.classList.add('on'); state.orient=b.dataset.o; saveLocal(); schedulePreview();
   });
 
+  // section placement (names / date line -> top or bottom)
+  function wirePos(segId, field){
+    $(segId).addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b) return;
+      [...e.currentTarget.children].forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); state[field]=b.dataset.p; saveLocal(); schedulePreview();
+    });
+  }
+  wirePos('namesPosSeg','namesPos');
+  wirePos('infoPosSeg','infoPos');
+
   // font / emoji / bg selects
   $('font').addEventListener('change',e=>{ state.font=e.target.value; saveLocal(); schedulePreview(); });
   $('emoji').addEventListener('change',e=>{ state.emoji=e.target.value; saveLocal(); schedulePreview(); });
@@ -832,6 +863,8 @@
     $('emoji').value=state.emoji;
     $('bg').value=state.bg;
     [...$('orientSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.o===state.orient));
+    [...$('namesPosSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.p===state.namesPos));
+    [...$('infoPosSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.p===state.infoPos));
     [...$('themes').children].forEach(x=>x.classList.toggle('on',x.dataset.t===state.theme));
     document.documentElement.style.setProperty('--accent',state.accent);
   }
