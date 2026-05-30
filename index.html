@@ -526,8 +526,8 @@
   function drawCorners(c,W,H,key){
     const set=EMOJI[key]; if(!set||!set.length) return;
     const size=Math.round(Math.min(W,H)*0.078);
-    const inset=Math.round(Math.min(W,H)*0.085)+size/2; // tucked inside the print-safe border margin
-    const pts=[[inset,inset],[W-inset,inset],[W-inset,H-inset],[inset,H-inset]];
+    const ix=Math.round(W*0.07)+size/2, iy=Math.round(H*0.07)+size/2; // per-axis, just inside the border
+    const pts=[[ix,iy],[W-ix,iy],[W-ix,H-iy],[ix,H-iy]];
     c.textAlign='center'; c.textBaseline='middle';
     c.font=size+'px "Segoe UI Emoji","Noto Color Emoji",sans-serif';
     c.save(); c.shadowColor='rgba(0,0,0,.35)'; c.shadowBlur=size*0.12; c.shadowOffsetY=2;
@@ -552,23 +552,24 @@
 
     const accent=state.accent;
 
-    // Print-safe margin. Borderless printers (Canon SELPHY etc.) enlarge the image
-    // and crop a few % at every edge, so the photo bleeds full but the border, text
-    // panel and corner emojis all stay inside this inset to survive the overscan.
-    const SAFE=Math.round(Math.min(W,H)*0.06);
+    // Print-safe margins. Borderless printers (Canon SELPHY etc.) enlarge the image
+    // and crop a few % at every edge. Use the SAME percentage on each axis (not a
+    // fixed pixel value) so every side clears equally — a fixed inset becomes a
+    // smaller % on the long edge, which crowds the top/bottom. Photo still bleeds full.
+    const mx=Math.round(W*0.06), my=Math.round(H*0.06);
 
     // double border
-    const m=SAFE, lw=Math.round(W*0.011);
+    const lw=Math.round(W*0.011);
     c.strokeStyle=accent; c.lineWidth=lw;
-    c.strokeRect(m,m,W-2*m,H-2*m);
+    c.strokeRect(mx,my,W-2*mx,H-2*my);
     c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
-    const m2=m+Math.round(lw*0.9); c.strokeRect(m2,m2,W-2*m2,H-2*m2);
+    const o=Math.round(lw*0.9); c.strokeRect(mx+o,my+o,W-2*(mx+o),H-2*(my+o));
 
     // text band geometry
-    const inner=m+lw;
+    const innerX=mx+lw, innerY=my+lw;
     const portrait=H>W;
     const bandH=Math.round(H*(portrait?0.205:0.255));
-    const band={x:inner, y:H-inner-bandH, w:W-2*inner, h:bandH};
+    const band={x:innerX, y:H-innerY-bandH, w:W-2*innerX, h:bandH};
 
     const tr = drawTextBg(c,W,H,band,state.bg,accent);
     drawCorners(c,W,H,state.emoji);
