@@ -565,60 +565,46 @@
     c.strokeStyle='rgba(255,255,255,0.9)'; c.lineWidth=Math.max(2,Math.round(lw*0.32));
     const o=Math.round(lw*0.9); c.strokeRect(mx+o,my+o,W-2*(mx+o),H-2*(my+o));
 
-    // text band geometry
+    // text band geometry (two strips: greeting + date on top, names on the bottom)
     const innerX=mx+lw, innerY=my+lw;
     const portrait=H>W;
-    const bandH=Math.round(H*(portrait?0.205:0.255));
-    const band={x:innerX, y:H-innerY-bandH, w:W-2*innerX, h:bandH};
 
-    const tr = drawTextBg(c,W,H,band,state.bg,accent);
-    drawCorners(c,W,H,state.emoji);
-
-    // text content
     const names=(state.names||'').trim();
     const greeting=(state.greeting||'').trim();
     const date=(state.date||'').trim();
+    const font=FONTS[state.font];
 
-    const onLight = tr.light;            // pale panel -> dark text; else white text
-    const glow = !onLight;               // add shadow/outline when text is on photo/color
-    const cx = tr.x + tr.w/2;
-    const maxW = tr.w;
-    const nameColor = onLight ? '#2a241c' : '#ffffff';
-    const subColor  = onLight ? 'rgba(60,50,40,.9)' : 'rgba(255,255,255,.95)';
-    const dateColor = onLight ? accent : '#ffffff';
-    const hasG = !!greeting;
-
-    c.textAlign='center'; c.textBaseline='middle';
-    function withGlow(fn){
+    // draw one centered line of text inside a panel's text rect
+    function drawLine(tr, text, capFactor){
+      const cx=tr.x+tr.w/2, glow=!tr.light;
+      const size=fitFont(c,text,font,tr.w,Math.round(tr.h*capFactor),'');
+      c.font=size+'px '+font; c.textAlign='center'; c.textBaseline='middle';
       c.save();
-      if(glow){ c.shadowColor='rgba(0,0,0,.55)'; c.shadowBlur=W*0.012; c.shadowOffsetY=2; c.lineJoin='round'; }
-      fn(); c.restore();
+      if(glow){ c.shadowColor='rgba(0,0,0,.55)'; c.shadowBlur=tr.w*0.012; c.shadowOffsetY=2; c.lineJoin='round';
+                c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=size*0.05; c.strokeText(text,cx,tr.y+tr.h/2); }
+      c.fillStyle = tr.light ? '#2a241c' : '#ffffff';
+      c.fillText(text,cx,tr.y+tr.h/2);
+      c.restore();
     }
 
-    // vertical anchors inside the panel's text area
-    const gY = tr.y + tr.h*0.21;
-    const nY = tr.y + tr.h*(hasG?0.54:0.47);
-    const dY = tr.y + tr.h*(hasG?0.86:0.80);
-
-    if(greeting){
-      const gs=fitFont(c,greeting,FONTS[state.font],maxW,Math.round(tr.h*0.16),'');
-      c.font=gs+'px '+FONTS[state.font];
-      withGlow(()=>{ c.fillStyle=subColor; c.fillText(greeting,cx,gY); });
+    // TOP strip: greeting and date on one line, joined by a dot
+    const topParts=[greeting,date].filter(Boolean);
+    if(topParts.length){
+      const tH=Math.round(H*(portrait?0.088:0.105));
+      const topBand={x:innerX, y:innerY, w:W-2*innerX, h:tH};
+      const tr=drawTextBg(c,W,H,topBand,state.bg,accent);
+      drawLine(tr, topParts.join('   ·   '), 0.5);
     }
+
+    // BOTTOM strip: the kids' names (shorter band now that there's no extra text)
     if(names){
-      const ns=fitFont(c,names,FONTS[state.font],maxW,Math.round(tr.h*(hasG?0.40:0.52)),'');
-      c.font=ns+'px '+FONTS[state.font];
-      withGlow(()=>{
-        if(glow){ c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=ns*0.055; c.strokeText(names,cx,nY); }
-        c.fillStyle=nameColor; c.fillText(names,cx,nY);
-      });
+      const bH=Math.round(H*(portrait?0.14:0.17));
+      const botBand={x:innerX, y:H-innerY-bH, w:W-2*innerX, h:bH};
+      const tr=drawTextBg(c,W,H,botBand,state.bg,accent);
+      drawLine(tr, names, 0.64);
     }
-    if(date){
-      const up=date.toUpperCase();
-      const ds=fitFont(c,up,SUB_FONT,maxW,Math.round(tr.h*0.13),'bold');
-      c.font='bold '+ds+'px '+SUB_FONT;
-      withGlow(()=>{ c.fillStyle=dateColor; c.fillText(up,cx,dY); });
-    }
+
+    drawCorners(c,W,H,state.emoji);
   }
 
   /* ---------- live preview (debounced) ---------- */
