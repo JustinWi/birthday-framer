@@ -278,6 +278,7 @@
             <option value="basketball">🏀 Basketball</option>
             <option value="football">🏈 Football</option>
             <option value="biking">🚲 Biking</option>
+            <option value="scandia">🏎️ Scandia (games·racing·laser·golf)</option>
             <option value="party">🎉 Party</option>
             <option value="stars">⭐ Stars</option>
           </select>
@@ -289,6 +290,7 @@
             <option value="badge">Rounded badge</option>
             <option value="ribbon">Ribbon banner</option>
             <option value="burst">Sticker burst</option>
+            <option value="gradient">Green-blue gradient</option>
             <option value="none">None (text on photo)</option>
           </select>
         </div>
@@ -356,6 +358,7 @@
   const EMOJI = {
     none:[],
     games:['🎮','👾','🕹️','⭐'],
+    scandia:['🎮','🏎️','🎯','⛳'],
     baseball:['⚾','🧢','⚾','🧢'],
     basketball:['🏀','🔥','🏀','🔥'],
     football:['🏈','🏆','🏈','🏆'],
@@ -366,6 +369,7 @@
 
   const THEMES = {
     elegant   :{label:'✨ Elegant',    font:'georgia', accent:'#e8b04b', emoji:'none',       bg:'strip'},
+    scandia   :{label:'🏎️ Scandia',    font:'bangers', accent:'#13b6c9', emoji:'scandia',    bg:'gradient'},
     games     :{label:'🎮 Video Games',font:'luckiest',accent:'#7c5cff', emoji:'games',      bg:'burst'},
     baseball  :{label:'⚾ Baseball',    font:'bangers', accent:'#c0392b', emoji:'baseball',   bg:'ribbon'},
     basketball:{label:'🏀 Basketball',  font:'anton',   accent:'#e67e22', emoji:'basketball', bg:'badge'},
@@ -461,47 +465,61 @@
     c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
   }
 
-  /* ---------- background designs behind text ---------- */
+  /* ---------- background designs behind text ----------
+     Each returns the text area {x,y,w,h,light}. light=true means a pale panel
+     (use dark text); light=false means text sits on photo/colored panel (use white). */
   function drawTextBg(c,W,H,band,kind,accent){
     const {x,y,w,h}=band;
-    if(kind==='none') return;
+    const px=w*0.06;
+    if(kind==='none'){
+      return {x:x+px,y,w:w-2*px,h,light:false};
+    }
     if(kind==='strip'){
       c.fillStyle='rgba(255,255,255,0.94)'; c.fillRect(x,y,w,h);
       c.fillStyle=accent; c.fillRect(x,y,w,Math.max(4,Math.round(H*0.006)));
-      return;
+      return {x:x+px,y,w:w-2*px,h,light:true};
     }
     if(kind==='badge'){
-      const bw=w*0.9,bx=x+(w-bw)/2;
+      const bw=w*0.94, bx=x+(w-bw)/2;
       c.fillStyle='rgba(255,255,255,0.95)'; roundRect(c,bx,y,bw,h,Math.round(h*0.22)); c.fill();
-      c.lineWidth=Math.max(4,Math.round(H*0.006)); c.strokeStyle=accent;
-      roundRect(c,bx+c.lineWidth,y+c.lineWidth,bw-2*c.lineWidth,h-2*c.lineWidth,Math.round(h*0.18)); c.stroke();
-      return;
+      const lw=Math.max(4,Math.round(H*0.006)); c.lineWidth=lw; c.strokeStyle=accent;
+      roundRect(c,bx+lw,y+lw,bw-2*lw,h-2*lw,Math.round(h*0.18)); c.stroke();
+      return {x:bx+bw*0.07,y,w:bw*0.86,h,light:true};
     }
     if(kind==='ribbon'){
       const notch=h*0.26;
-      c.fillStyle=accent;
-      c.beginPath();
+      c.fillStyle=accent; c.beginPath();
       c.moveTo(x,y); c.lineTo(x+w,y); c.lineTo(x+w-notch,y+h/2); c.lineTo(x+w,y+h);
       c.lineTo(x,y+h); c.lineTo(x+notch,y+h/2); c.closePath(); c.fill();
-      // inner cream panel (wide enough to hold the names)
-      const ix=x+notch*0.7, iw=w-notch*1.4;
-      c.fillStyle='rgba(255,255,255,0.94)'; c.fillRect(ix,y+h*0.1,iw,h*0.8);
-      return;
+      const ix=x+notch*0.7, iw=w-notch*1.4, iy=y+h*0.1, ih=h*0.8;
+      c.fillStyle='rgba(255,255,255,0.94)'; c.fillRect(ix,iy,iw,ih);
+      return {x:ix+iw*0.05,y:iy,w:iw*0.9,h:ih,light:true};
     }
     if(kind==='burst'){
-      const cx=x+w/2, cy=y+h/2, R=Math.max(w,h)*0.62, spikes=24;
+      const cx=x+w/2, cy=y+h/2;
+      const bw=w*0.84, bh=h*0.82, spikes=22;
+      const R=Math.max(bw,bh)*0.64;
       c.fillStyle=accent; c.beginPath();
       for(let i=0;i<spikes*2;i++){
-        const r = i%2? R : R*0.78;
+        const r = i%2? R : R*0.8;
         const a = Math.PI*i/spikes;
-        const px=cx+Math.cos(a)*r, py=cy+Math.sin(a)*r*(h/w);
-        i?c.lineTo(px,py):c.moveTo(px,py);
+        const sx=cx+Math.cos(a)*r, sy=cy+Math.sin(a)*r*(bh/bw);
+        i?c.lineTo(sx,sy):c.moveTo(sx,sy);
       }
       c.closePath(); c.fill();
-      const bw=w*0.78, bh=h*0.74;
-      c.fillStyle='rgba(255,255,255,0.95)'; roundRect(c,cx-bw/2,cy-bh/2,bw,bh,Math.round(bh*0.2)); c.fill();
-      return;
+      c.fillStyle='rgba(255,255,255,0.96)'; roundRect(c,cx-bw/2,cy-bh/2,bw,bh,Math.round(bh*0.18)); c.fill();
+      return {x:cx-bw/2+bw*0.06,y:cy-bh/2,w:bw*0.88,h:bh,light:true};
     }
+    if(kind==='gradient'){
+      const bw=w*0.94, bx=x+(w-bw)/2;
+      const g=c.createLinearGradient(bx,y,bx+bw,y+h);
+      g.addColorStop(0,'#2ecc71'); g.addColorStop(.55,'#15b8c4'); g.addColorStop(1,'#2a7fff');
+      c.fillStyle=g; roundRect(c,bx,y,bw,h,Math.round(h*0.2)); c.fill();
+      const lw=Math.max(3,Math.round(H*0.004)); c.lineWidth=lw; c.strokeStyle='rgba(255,255,255,0.85)';
+      roundRect(c,bx+lw,y+lw,bw-2*lw,h-2*lw,Math.round(h*0.17)); c.stroke();
+      return {x:bx+bw*0.07,y,w:bw*0.86,h,light:false};
+    }
+    return {x:x+px,y,w:w-2*px,h,light:false};
   }
 
   /* ---------- corner emojis ---------- */
@@ -547,50 +565,53 @@
     const bandH=Math.round(H*(portrait?0.205:0.255));
     const band={x:inner, y:H-inner-bandH, w:W-2*inner, h:bandH};
 
-    drawTextBg(c,W,H,band,state.bg,accent);
+    const tr = drawTextBg(c,W,H,band,state.bg,accent);
     drawCorners(c,W,H,state.emoji);
 
     // text content
     const names=(state.names||'').trim();
     const greeting=(state.greeting||'').trim();
     const date=(state.date||'').trim();
-    const onPhoto = state.bg==='none';
-    const cx=W/2;
-    const pad=Math.round(band.w*0.07);
-    const maxW=band.w-pad*2;
 
-    // colors depending on background
-    const darkText = !onPhoto; // text sits on a light panel for every bg except "none"
-    const nameColor = darkText ? '#2a241c' : '#ffffff';
-    const subColor  = darkText ? 'rgba(60,50,40,.85)' : 'rgba(255,255,255,.92)';
+    const onLight = tr.light;            // pale panel -> dark text; else white text
+    const glow = !onLight;               // add shadow/outline when text is on photo/color
+    const cx = tr.x + tr.w/2;
+    const maxW = tr.w;
+    const nameColor = onLight ? '#2a241c' : '#ffffff';
+    const subColor  = onLight ? 'rgba(60,50,40,.9)' : 'rgba(255,255,255,.95)';
+    const dateColor = onLight ? accent : '#ffffff';
+    const hasG = !!greeting;
 
-    c.textAlign='center';
+    c.textAlign='center'; c.textBaseline='middle';
     function withGlow(fn){
       c.save();
-      if(onPhoto){ c.shadowColor='rgba(0,0,0,.6)'; c.shadowBlur=W*0.012; c.shadowOffsetY=2; c.lineJoin='round'; }
+      if(glow){ c.shadowColor='rgba(0,0,0,.55)'; c.shadowBlur=W*0.012; c.shadowOffsetY=2; c.lineJoin='round'; }
       fn(); c.restore();
     }
 
-    // vertical layout inside band
-    let cursorTop = band.y + band.h*(greeting?0.26:0.16);
+    // vertical anchors inside the panel's text area
+    const gY = tr.y + tr.h*0.21;
+    const nY = tr.y + tr.h*(hasG?0.54:0.47);
+    const dY = tr.y + tr.h*(hasG?0.86:0.80);
+
     if(greeting){
-      const gs=fitFont(c,greeting,FONTS[state.font],maxW,Math.round(band.h*0.16),'');
-      withGlow(()=>{ c.fillStyle=subColor; c.textBaseline='middle';
-        c.font=gs+'px '+FONTS[state.font]; c.fillText(greeting,cx,band.y+band.h*0.20); });
+      const gs=fitFont(c,greeting,FONTS[state.font],maxW,Math.round(tr.h*0.16),'');
+      c.font=gs+'px '+FONTS[state.font];
+      withGlow(()=>{ c.fillStyle=subColor; c.fillText(greeting,cx,gY); });
     }
     if(names){
-      const ns=fitFont(c,names,FONTS[state.font],maxW,Math.round(band.h*(greeting?0.42:0.5)),'');
+      const ns=fitFont(c,names,FONTS[state.font],maxW,Math.round(tr.h*(hasG?0.40:0.52)),'');
+      c.font=ns+'px '+FONTS[state.font];
       withGlow(()=>{
-        c.fillStyle=nameColor; c.textBaseline='middle'; c.font=ns+'px '+FONTS[state.font];
-        if(onPhoto){ c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=ns*0.06; c.strokeText(names,cx,band.y+band.h*(greeting?0.52:0.46)); }
-        c.fillText(names,cx,band.y+band.h*(greeting?0.52:0.46));
+        if(glow){ c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=ns*0.055; c.strokeText(names,cx,nY); }
+        c.fillStyle=nameColor; c.fillText(names,cx,nY);
       });
     }
     if(date){
       const up=date.toUpperCase();
-      const ds=fitFont(c,up,SUB_FONT,maxW,Math.round(band.h*0.135),'bold');
-      withGlow(()=>{ c.fillStyle = darkText? accent : '#fff'; c.textBaseline='middle';
-        c.font='bold '+ds+'px '+SUB_FONT; c.fillText(up,cx,band.y+band.h*0.85); });
+      const ds=fitFont(c,up,SUB_FONT,maxW,Math.round(tr.h*0.13),'bold');
+      c.font='bold '+ds+'px '+SUB_FONT;
+      withGlow(()=>{ c.fillStyle=dateColor; c.fillText(up,cx,dY); });
     }
   }
 
